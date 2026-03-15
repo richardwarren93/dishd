@@ -31,7 +31,6 @@ export default function SaveRecipeForm({ onOptimisticAdd, onSaveComplete }: Save
     const sourceUrl = url.trim()
     if (!sourceUrl) return
 
-    // Generate a temporary ID for optimistic update
     const tempId = `temp-${Date.now()}`
     const optimisticRecipe = {
       id: tempId,
@@ -45,10 +44,7 @@ export default function SaveRecipeForm({ onOptimisticAdd, onSaveComplete }: Save
       created_at: new Date().toISOString(),
     }
 
-    // Optimistically add to UI immediately
     onOptimisticAdd?.(optimisticRecipe)
-    
-    // Clear input immediately for better UX
     setUrl('')
     setLoading(true)
 
@@ -75,7 +71,6 @@ export default function SaveRecipeForm({ onOptimisticAdd, onSaveComplete }: Save
         throw new Error(data?.error ?? 'Failed to save recipe')
       }
 
-      // Notify parent to refresh the list
       onSaveComplete?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

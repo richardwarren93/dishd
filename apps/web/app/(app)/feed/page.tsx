@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import RecipesList from '@/components/RecipesList'
 
-export const metadata: Metadata = { title: 'Feed' }
+export const metadata: Metadata = { title: 'Your Recipes | dishd' }
 
 export default async function FeedPage() {
   const supabase = await createServerClient()
