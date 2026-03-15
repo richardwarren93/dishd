@@ -28,7 +28,7 @@ export default function ExtractionStatus({ recipeId, initialStatus }: Props) {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'recipes', filter: `id=eq.${recipeId}` },
         (payload) => {
-          const newStatus = (payload.new as { extraction_status: string }).extraction_status
+          const newStatus = (payload.new as unknown as { extraction_status: string }).extraction_status
           setStatus(newStatus)
           if (newStatus === 'done') {
             // Reload to show extracted content

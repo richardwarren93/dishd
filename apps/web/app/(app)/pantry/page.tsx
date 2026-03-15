@@ -18,6 +18,13 @@ export default async function PantryPage() {
     .eq('user_id', user!.id)
     .order('expires_at', { ascending: true, nullsFirst: false })
 
+  // Transform data to match PantryManager's expected types
+  // Supabase returns ingredients as array but it's a single foreign key relation
+  const transformedItems = (pantryItems ?? []).map(item => ({
+    ...item,
+    ingredients: Array.isArray(item.ingredients) ? item.ingredients[0] ?? null : item.ingredients,
+  }))
+
   return (
     <div className="space-y-8">
       <div>
@@ -25,7 +32,7 @@ export default async function PantryPage() {
         <p className="text-sm text-stone-500">Track what you have on hand. Get AI recipe suggestions to use it up.</p>
       </div>
 
-      <PantryManager initialItems={pantryItems ?? []} />
+      <PantryManager initialItems={transformedItems as Parameters<typeof PantryManager>[0]['initialItems']} />
       <RecommendationPanel />
     </div>
   )
