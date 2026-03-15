@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import useSWR from 'swr'
+import { useState, useCallback, useEffect } from 'react'
 import RecipeCard from './RecipeCard'
 import SaveRecipeForm from './SaveRecipeForm'
 import { createClient } from '@/lib/supabase/client'
@@ -27,53 +26,65 @@ interface RecipesListProps {
   initialRecipes: Recipe[]
 }
 
-async function fetchRecipes(): Promise<Recipe[]> {
-  const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  
-  const res = await fetch('/api/recipes', {
-    headers: {
-      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-    },
-  })
-  
-  if (!res.ok) throw new Error('Failed to fetch recipes')
-  return res.json()
-}
-
 export default function RecipesList({ initialRecipes }: RecipesListProps) {
+  const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes)
   const [optimisticRecipes, setOptimisticRecipes] = useState<Recipe[]>([])
-  
-  const { data: recipes } = useSWR<Recipe[]>('/api/recipes', fetchRecipes, {
-    fallbackData: initialRecipes,
-    revalidateOnFocus: true,
-    refreshInterval: 5000, // Poll every 5s to pick up extraction updates
-  })
+  const supabase = createClient()
+
+  // Poll for updates to pick up extraction status changes
+  useEffect(() => {
+    const fetchRecipes = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/recipes', {
+        headers: {
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setRecipes(data)
+        // Clear optimistic recipes that now have real data
+        setOptimisticRecipes(prev => 
+          prev.filter(opt => !data.some((r: Recipe) => r.source_url === opt.source_url))
+        )
+      }
+    }
+
+    const interval = setInterval(fetchRecipes, 5000)
+    return () => clearInterval(interval)
+  }, [supabase])
 
   const handleOptimisticAdd = useCallback((recipe: Recipe) => {
     setOptimisticRecipes(prev => [recipe, ...prev])
   }, [])
 
-  // Merge optimistic recipes with real data, filtering out temp IDs that now have real data
-  const allRecipes = [...optimisticRecipes, ...(recipes ?? [])]
-    .filter((recipe, index, self) => {
-      // Keep optimistic recipes only if we don't have a real version with the same URL
-      if (recipe.id.startsWith('temp-')) {
-        const hasRealVersion = self.some(
-          r => !r.id.startsWith('temp-') && r.source_url === recipe.source_url
-        )
-        return !hasRealVersion
-      }
-      return true
+  const handleRecipeSaved = useCallback(async () => {
+    // Fetch updated list after save completes
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/recipes', {
+      headers: {
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
     })
-    // Remove duplicate real recipes
+    if (res.ok) {
+      const data = await res.json()
+      setRecipes(data)
+      setOptimisticRecipes([])
+    }
+  }, [supabase])
+
+  // Merge optimistic recipes with real data
+  const allRecipes = [...optimisticRecipes, ...recipes]
     .filter((recipe, index, self) => 
       index === self.findIndex(r => r.id === recipe.id)
     )
 
   return (
     <>
-      <SaveRecipeForm onOptimisticAdd={handleOptimisticAdd} />
+      <SaveRecipeForm 
+        onOptimisticAdd={handleOptimisticAdd} 
+        onSaveComplete={handleRecipeSaved}
+      />
 
       {allRecipes.length === 0 ? (
         <div className="mt-12 text-center text-stone-400">

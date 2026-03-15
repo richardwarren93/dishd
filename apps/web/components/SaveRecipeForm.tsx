@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { mutate } from 'swr'
 
 interface SaveRecipeFormProps {
   onOptimisticAdd?: (recipe: {
@@ -16,9 +15,10 @@ interface SaveRecipeFormProps {
     extraction_status: string
     created_at: string
   }) => void
+  onSaveComplete?: () => void
 }
 
-export default function SaveRecipeForm({ onOptimisticAdd }: SaveRecipeFormProps) {
+export default function SaveRecipeForm({ onOptimisticAdd, onSaveComplete }: SaveRecipeFormProps) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -75,12 +75,11 @@ export default function SaveRecipeForm({ onOptimisticAdd }: SaveRecipeFormProps)
         throw new Error(data?.error ?? 'Failed to save recipe')
       }
 
-      // Revalidate the recipes list to get the real data
-      mutate('/api/recipes')
+      // Notify parent to refresh the list
+      onSaveComplete?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
-      // Revalidate to remove the optimistic entry on error
-      mutate('/api/recipes')
+      onSaveComplete?.()
     } finally {
       setLoading(false)
     }
