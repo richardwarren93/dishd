@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@dishd/shared", "@dishd/supabase"],
 };
 
 export default nextConfig;
