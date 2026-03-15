@@ -2,7 +2,7 @@
   "name": "dishd",
   "private": true,
   "scripts": {
-    "dev": "cd apps/web && pnpm dev",
+    "dev": "pnpm -F @dishd/web dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
