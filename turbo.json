@@ -7,8 +7,7 @@
     },
     "dev": {
       "persistent": true,
-      "cache": false,
-      "filter": ["@dishd/web"]
+      "cache": false
     },
     "lint": {
       "dependsOn": ["^lint"]
