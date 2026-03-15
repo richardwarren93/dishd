@@ -99,5 +99,20 @@ export async function POST(req: NextRequest) {
     status: 'queued',
   })
 
+  // Trigger extraction immediately (don't wait for cron)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (supabaseUrl && serviceRoleKey) {
+    // Fire and forget - don't block the response
+    fetch(`${supabaseUrl}/functions/v1/extract-recipe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({}),
+    }).catch(err => console.error('Failed to trigger extraction:', err))
+  }
+
   return NextResponse.json(recipe, { status: 201 })
 }
