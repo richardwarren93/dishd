@@ -5,8 +5,6 @@ import RecipeCard from './RecipeCard'
 import SaveRecipeForm from './SaveRecipeForm'
 import { createClient } from '@/lib/supabase/client'
 
-// Optimistic UI for instant recipe saving - no SWR dependency
-
 interface Recipe {
   id: string
   user_id?: string
@@ -33,7 +31,6 @@ export default function RecipesList({ initialRecipes }: RecipesListProps) {
   const [optimisticRecipes, setOptimisticRecipes] = useState<Recipe[]>([])
   const supabase = createClient()
 
-  // Poll for updates to pick up extraction status changes
   useEffect(() => {
     const fetchRecipes = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -45,7 +42,6 @@ export default function RecipesList({ initialRecipes }: RecipesListProps) {
       if (res.ok) {
         const data = await res.json()
         setRecipes(data)
-        // Clear optimistic recipes that now have real data
         setOptimisticRecipes(prev => 
           prev.filter(opt => !data.some((r: Recipe) => r.source_url === opt.source_url))
         )
@@ -61,7 +57,6 @@ export default function RecipesList({ initialRecipes }: RecipesListProps) {
   }, [])
 
   const handleRecipeSaved = useCallback(async () => {
-    // Fetch updated list after save completes
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/recipes', {
       headers: {
@@ -75,7 +70,6 @@ export default function RecipesList({ initialRecipes }: RecipesListProps) {
     }
   }, [supabase])
 
-  // Merge optimistic recipes with real data
   const allRecipes = [...optimisticRecipes, ...recipes]
     .filter((recipe, index, self) => 
       index === self.findIndex(r => r.id === recipe.id)
