@@ -49,6 +49,32 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient()
 
+  // Check if profile exists, create if not (handles users created before trigger was set up)
+  const { data: profile, error: profileError } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('id', auth.user.id)
+    .single()
+
+  if (profileError && profileError.code === 'PGRST116') {
+    // Profile doesn't exist, create one
+    const email = auth.user.email ?? ''
+    const username = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').toLowerCase() + '_' + Math.random().toString(36).slice(2, 8)
+    const { error: createProfileError } = await admin
+      .from('profiles')
+      .insert({
+        id: auth.user.id,
+        username,
+        display_name: auth.user.user_metadata?.full_name ?? email.split('@')[0],
+      })
+    if (createProfileError) {
+      console.error('[v0] Failed to create profile:', createProfileError)
+      return NextResponse.json({ error: 'Failed to create user profile' }, { status: 500 })
+    }
+  } else if (profileError) {
+    console.error('[v0] Profile lookup error:', profileError)
+  }
+
   // Insert recipe row
   const { data: recipe, error: recipeError } = await admin
     .from('recipes')
@@ -62,7 +88,10 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (recipeError) return NextResponse.json({ error: recipeError.message }, { status: 500 })
+  if (recipeError) {
+    console.error('[v0] Recipe insert error:', recipeError)
+    return NextResponse.json({ error: recipeError.message }, { status: 500 })
+  }
 
   // Queue extraction job
   await admin.from('extraction_jobs').insert({
