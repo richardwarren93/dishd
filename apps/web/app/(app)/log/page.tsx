@@ -30,7 +30,7 @@ export default async function LogPage() {
       ) : (
         <div className="space-y-3">
           {logs.map(log => {
-            const recipe = log.recipes as { id: string; title: string | null; image_url: string | null } | null
+            const recipe = log.recipes as unknown as { id: string; title: string | null; image_url: string | null } | null
             const date = new Date(log.cooked_at)
 
             return (
