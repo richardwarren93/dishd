@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
+// Optimistic recipe form - instant UI feedback
+
 interface SaveRecipeFormProps {
   onOptimisticAdd?: (recipe: {
     id: string

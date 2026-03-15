@@ -5,6 +5,8 @@ import RecipeCard from './RecipeCard'
 import SaveRecipeForm from './SaveRecipeForm'
 import { createClient } from '@/lib/supabase/client'
 
+// Optimistic UI for instant recipe saving - no SWR dependency
+
 interface Recipe {
   id: string
   user_id?: string
