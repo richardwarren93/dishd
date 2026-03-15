@@ -2,7 +2,7 @@
   "name": "dishd",
   "private": true,
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "turbo dev --filter=@dishd/web",
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
