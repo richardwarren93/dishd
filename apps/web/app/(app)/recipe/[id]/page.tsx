@@ -89,13 +89,15 @@ export default async function RecipePage({ params }: Params) {
       {/* Tags */}
       {recipe.recipe_tags && recipe.recipe_tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
-          {recipe.recipe_tags.map(({ tags }: { tags: { id: string; name: string } | null }) =>
-            tags ? (
-              <span key={tags.id} className="text-xs bg-stone-100 text-stone-600 px-2 py-1 rounded-full">
+          {recipe.recipe_tags.map((item: unknown, index: number) => {
+            const tagItem = item as { tags: { id: string; name: string } | { id: string; name: string }[] | null }
+            const tags = Array.isArray(tagItem.tags) ? tagItem.tags[0] : tagItem.tags
+            return tags ? (
+              <span key={tags.id ?? index} className="text-xs bg-stone-100 text-stone-600 px-2 py-1 rounded-full">
                 {tags.name}
               </span>
             ) : null
-          )}
+          })}
         </div>
       )}
 
