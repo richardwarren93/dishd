@@ -27,14 +27,24 @@ export default function SaveRecipeForm() {
         body: JSON.stringify({ source_url: url }),
       })
 
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error ?? 'Failed to save recipe')
+      const text = await res.text()
+      let data
+      try {
+        data = text ? JSON.parse(text) : null
+      } catch {
+        throw new Error('Invalid response from server')
       }
 
-      const recipe = await res.json()
+      if (!res.ok) {
+        throw new Error(data?.error ?? 'Failed to save recipe')
+      }
+
+      if (!data?.id) {
+        throw new Error('Recipe was not created properly')
+      }
+
       setUrl('')
-      router.push(`/recipe/${recipe.id}`)
+      router.push(`/recipe/${data.id}`)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
