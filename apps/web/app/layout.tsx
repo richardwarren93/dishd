@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: { default: 'dishd', template: '%s · dishd' },
-  description: 'Save, cook, and discover recipes — no more lost TikTok recipes',
+  description: 'Save, cook, and discover recipes from TikTok and Instagram',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
