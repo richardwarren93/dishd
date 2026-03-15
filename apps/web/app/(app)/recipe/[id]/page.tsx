@@ -105,7 +105,7 @@ export default async function RecipePage({ params }: Params) {
           <h2 className="text-lg font-semibold text-stone-900 mb-3">Ingredients</h2>
           <ul className="space-y-2">
             {ingredients.map(item => {
-              const ing = item.ingredients as { name: string } | null
+              const ing = item.ingredients as unknown as { name: string } | null
               const parts = [
                 item.quantity ? String(item.quantity) : '',
                 item.unit ?? '',

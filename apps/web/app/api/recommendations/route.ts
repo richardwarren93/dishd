@@ -43,14 +43,14 @@ export async function POST(req: NextRequest) {
     .not('title', 'is', null)
 
   const pantryText = pantry.map(item => {
-    const name = (item.ingredients as { name: string } | null)?.name ?? 'unknown'
+    const name = (item.ingredients as unknown as { name: string } | null)?.name ?? 'unknown'
     const qty = item.quantity ? `${item.quantity}${item.unit ? ' ' + item.unit : ''}` : ''
     const exp = item.expires_at ? ` (expires ${item.expires_at})` : ''
     return `- ${name}${qty ? ': ' + qty : ''}${exp}`
   }).join('\n')
 
   const cookHistoryText = recentCooks?.map(c => {
-    const title = (c.recipes as { title: string | null } | null)?.title ?? 'Unknown recipe'
+    const title = (c.recipes as unknown as { title: string | null } | null)?.title ?? 'Unknown recipe'
     return `- ${title} (cooked ${c.cooked_at.slice(0, 10)}${c.rating ? ', rated ' + c.rating + '/5' : ''})`
   }).join('\n') ?? 'No cook history yet'
 
