@@ -287,71 +287,90 @@ async function saveExtractedRecipe(recipeId: string, data: ExtractionResult) {
     )
   }
 
-  // Upsert ingredients
+  // Upsert ingredients (batch operations for speed)
   if (data.ingredients && data.ingredients.length > 0) {
     await supabase.from('recipe_ingredients').delete().eq('recipe_id', recipeId)
 
-    for (let i = 0; i < data.ingredients.length; i++) {
-      const ing = data.ingredients[i]
-      const ingredientName = ing.name.toLowerCase().trim()
-
-      // Get or create ingredient
-      let { data: existing } = await supabase
+    // Get all unique ingredient names
+    const ingredientNames = [...new Set(data.ingredients.map(ing => ing.name.toLowerCase().trim()))]
+    
+    // Fetch existing ingredients in one query
+    const { data: existingIngredients } = await supabase
+      .from('ingredients')
+      .select('id, name')
+      .in('name', ingredientNames)
+    
+    const existingMap = new Map(existingIngredients?.map(i => [i.name, i.id]) ?? [])
+    
+    // Find missing ingredients and insert them in batch
+    const missingNames = ingredientNames.filter(name => !existingMap.has(name))
+    if (missingNames.length > 0) {
+      const { data: newIngredients } = await supabase
         .from('ingredients')
-        .select('id')
-        .eq('name', ingredientName)
-        .single()
-
-      if (!existing) {
-        const { data: created } = await supabase
-          .from('ingredients')
-          .insert({ name: ingredientName })
-          .select('id')
-          .single()
-        existing = created
-      }
-
-      if (existing) {
-        await supabase.from('recipe_ingredients').insert({
+        .insert(missingNames.map(name => ({ name })))
+        .select('id, name')
+      
+      newIngredients?.forEach(i => existingMap.set(i.name, i.id))
+    }
+    
+    // Build all recipe_ingredients rows and insert in batch
+    const recipeIngredients = data.ingredients
+      .map((ing, i) => {
+        const ingredientId = existingMap.get(ing.name.toLowerCase().trim())
+        if (!ingredientId) return null
+        return {
           recipe_id: recipeId,
-          ingredient_id: existing.id,
+          ingredient_id: ingredientId,
           quantity: ing.quantity,
           unit: ing.unit,
           preparation: ing.preparation,
           is_optional: ing.is_optional ?? false,
           sort_order: i,
-        })
-      }
+        }
+      })
+      .filter(Boolean)
+    
+    if (recipeIngredients.length > 0) {
+      await supabase.from('recipe_ingredients').insert(recipeIngredients)
     }
   }
 
-  // Upsert tags
+  // Upsert tags (batch operations for speed)
   if (data.tags && data.tags.length > 0) {
     await supabase.from('recipe_tags').delete().eq('recipe_id', recipeId)
 
-    for (const tagName of data.tags) {
-      const name = tagName.toLowerCase().trim()
-      let { data: existing } = await supabase
+    const tagNames = [...new Set(data.tags.map(t => t.toLowerCase().trim()))]
+    
+    // Fetch existing tags in one query
+    const { data: existingTags } = await supabase
+      .from('tags')
+      .select('id, name')
+      .in('name', tagNames)
+    
+    const tagMap = new Map(existingTags?.map(t => [t.name, t.id]) ?? [])
+    
+    // Insert missing tags in batch
+    const missingTagNames = tagNames.filter(name => !tagMap.has(name))
+    if (missingTagNames.length > 0) {
+      const { data: newTags } = await supabase
         .from('tags')
-        .select('id')
-        .eq('name', name)
-        .single()
-
-      if (!existing) {
-        const { data: created } = await supabase
-          .from('tags')
-          .insert({ name })
-          .select('id')
-          .single()
-        existing = created
-      }
-
-      if (existing) {
-        await supabase.from('recipe_tags').insert({
-          recipe_id: recipeId,
-          tag_id: existing.id,
-        }).onConflict('recipe_id, tag_id').ignore()
-      }
+        .insert(missingTagNames.map(name => ({ name })))
+        .select('id, name')
+      
+      newTags?.forEach(t => tagMap.set(t.name, t.id))
+    }
+    
+    // Insert recipe_tags in batch
+    const recipeTags = tagNames
+      .map(name => {
+        const tagId = tagMap.get(name)
+        if (!tagId) return null
+        return { recipe_id: recipeId, tag_id: tagId }
+      })
+      .filter(Boolean)
+    
+    if (recipeTags.length > 0) {
+      await supabase.from('recipe_tags').insert(recipeTags)
     }
   }
 }
